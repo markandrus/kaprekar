@@ -75,4 +75,4 @@ main = do let ps = gen_pairs
           let kvs = zip ps (List.map (fst) qs)
           let vs = v $ [(n, lookup_coord n kvs) | n <- [0..9999]]
           r <- V.unsafeWith vs ptr2repa
-          runIL $ writeImage "kaprekar.bmp" r
+          runIL $ writeImage "kaprekar.png" r
