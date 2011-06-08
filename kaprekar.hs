@@ -37,7 +37,7 @@ regen_pairs ps = filter (\(x, y) -> x /= y) --is this line necessary?
 iterations xs | (length $ List.nub qs) > 1 = iterations ys
               | otherwise = ys
      where ys = zip js qs
-           js = List.map (\(i, (p, q)) -> if (p==q) then i else i+1) . zip is $ zip ps qs
+           js = List.map (\(i, p, q) -> if (p==q) then i else i+1) $ zip3 is ps qs
            qs = sub_pairs $ regen_pairs ps
            (is, ps) = unzip xs
  
