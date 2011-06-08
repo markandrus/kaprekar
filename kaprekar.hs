@@ -53,16 +53,16 @@ i, j, k :: Int
 (i, j, k) = (100, 100, 4 {-RGBA-})
 
 v :: [(Int, Int)] -> V.Vector Word8
-v ps = V.fromList . take (i * j * k) . concat $ List.map (to_pallette . snd) ps
-     where to_pallette n | n == (-1) = [255, 255,   0, 255] -- Yellow
-                         | n ==   0  = [128, 255,   0, 255] -- Yellow-Green
-                         | n ==   1  = [  0, 255,  64, 255] -- Green
-                         | n ==   2  = [  0, 255, 255, 255] -- Cyan
-                         | n ==   3  = [  0,  64, 255, 255] -- Blue
-                         | n ==   4  = [128,   0, 255, 255] -- Purple
-                         | n ==   5  = [255,   0, 192, 255] -- Magenta
-                         | n ==   6  = [255,   0,   0, 255] -- Red
-                         | otherwise = [  0,   0,   0, 255] -- Black
+v ps = V.fromList . take (i * j * k) . concat $ List.map (c . snd) ps
+     where c (-1) = [255, 255,   0, 255] -- Yellow
+           c   0  = [128, 255,   0, 255] -- Yellow-Green
+           c   1  = [  0, 255,  64, 255] -- Green
+           c   2  = [  0, 255, 255, 255] -- Cyan
+           c   3  = [  0,  64, 255, 255] -- Blue
+           c   4  = [128,   0, 255, 255] -- Purple
+           c   5  = [255,   0, 192, 255] -- Magenta
+           c   6  = [255,   0,   0, 255] -- Red
+           c   _  = [  0,   0,   0, 255] -- Black
 
 
 ptr2repa p = copyFromPtrWord8 (Z :. i :. j :. k) p
