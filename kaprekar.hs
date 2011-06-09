@@ -1,16 +1,8 @@
-{-# LANGUAGE MultiParamTypeClasses
-           , FunctionalDependencies
-           , FlexibleInstances
-           , UndecidableInstances
-           #-}
-
-{-# OPTIONS_GHC -w -fwarn-tabs #-}
 -- Kaprekar Routine Visualization
 -- By: andrus@uchicago.edu
 -- Inspiration: http://mathworld.wolfram.com/KaprekarRoutine.html
 import Data.Maybe
 import Data.Word
-import Data.List
 import qualified List
 import Data.Digits
 import qualified Data.Vector.Storable as V
