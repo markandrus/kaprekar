@@ -1,8 +1,16 @@
+{-# LANGUAGE MultiParamTypeClasses
+           , FunctionalDependencies
+           , FlexibleInstances
+           , UndecidableInstances
+           #-}
+
+{-# OPTIONS_GHC -w -fwarn-tabs #-}
 -- Kaprekar Routine Visualization
 -- By: andrus@uchicago.edu
 -- Inspiration: http://mathworld.wolfram.com/KaprekarRoutine.html
 import Data.Maybe
 import Data.Word
+import Data.List
 import qualified List
 import Data.Digits
 import qualified Data.Vector.Storable as V
@@ -10,17 +18,20 @@ import Data.Array.Repa hiding ((++))
 import Data.Array.Repa.IO.DevIL
 import Data.Array.Repa.ByteString
 
+base = 10
+width = 4
+numbers = base^width
 
 {- Kaprekar Functions -}
 
 mk_max_min :: Int -> (Int, Int)
-mk_max_min n = (unDigits 10 $ List.reverse m, unDigits 10 $ m)
-    where m = (replicate (4 - length l) 0) ++ l
-          l = List.sort $ digitsRev 10 n
+mk_max_min n = (unDigits base $ List.reverse m, unDigits base $ m)
+    where m = (replicate (width - length l) 0) ++ l
+          l = List.sort $ digitsRev base n
 
 
 gen_pairs = [(1000*a + 100*b + 10*c + 1*d, 1000*d + 100*c + 10*b + a)
-             | a <- [0..9]
+             | a <- [0..base-1]
              , b <- [0..a]
              , c <- [0..b]
              , d <- [0..c]
@@ -49,8 +60,10 @@ lookup_coord n kvs | isNothing v  = (-1)
 
 {- Image Functions -}
 
+isqrt = floor . sqrt . fromIntegral
+
 i, j, k :: Int
-(i, j, k) = (100, 100, 4 {-RGBA-})
+(i, j, k) = (isqrt numbers, isqrt numbers, 4 {-RGBA-})
 
 v :: [(Int, Int)] -> V.Vector Word8
 v ps = V.fromList . take (i * j * k) . concat $ List.map (c . snd) ps
@@ -73,6 +86,6 @@ ptr2repa p = copyFromPtrWord8 (Z :. i :. j :. k) p
 main = do let ps = gen_pairs
           let qs = iterations . zip (replicate (length ps) 0) $ sub_pairs ps
           let kvs = zip ps (List.map (fst) qs)
-          let vs = v $ [(n, lookup_coord n kvs) | n <- [0..9999]]
+          let vs = v $ [(n, lookup_coord n kvs) | n <- [0..numbers-1]]
           r <- V.unsafeWith vs ptr2repa
           runIL $ writeImage "kaprekar.png" r
