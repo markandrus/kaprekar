@@ -22,12 +22,21 @@ mk_max_min n = (unDigits base $ List.reverse m, unDigits base $ m)
           l = List.sort $ digitsRev base n
 
 
-gen_pairs = [(1000*a + 100*b + 10*c + 1*d, 1000*d + 100*c + 10*b + a)
-             | a <- [0..base-1]
-             , b <- [0..a]
-             , c <- [0..b]
-             , d <- [0..c]
-             , not $ all (a==) [a, b, c, d]]
+--gen_pairs = [(1000*a + 100*b + 10*c + 1*d, 1000*d + 100*c + 10*b + a)
+--             | a <- [0..base-1]
+--             , b <- [0..a]
+--             , c <- [0..b]
+--             , d <- [0..c]
+--             , not $ all (a==) [a, b, c, d]]
+
+
+-- I feel like their must be a superior (faster) way of doing this.
+-- Perhaps there is a way to write the list comprehension in the original
+-- version as a function of base and width?
+gen_pairs = List.sort
+          $ List.filter (\(x, y) -> x /= y)
+          $ List.nub
+          $ List.map (mk_max_min) [0..numbers-1]
 
 
 sub_pairs ps = List.map (\(max, min) -> max - min) ps
@@ -57,6 +66,7 @@ isqrt = floor . sqrt . fromIntegral
 i, j, k :: Int
 (i, j, k) = (isqrt numbers, isqrt numbers, 4 {-RGBA-})
 
+-- TODO: rewrite this so we can accomodate numbers iteration steps larger than 6.
 v :: [(Int, Int)] -> V.Vector Word8
 v ps = V.fromList . take (i * j * k) . concat $ List.map (c . snd) ps
      where c (-1) = [255, 255,   0, 255] -- Yellow
@@ -80,4 +90,4 @@ main = do let ps = gen_pairs
           let kvs = zip ps (List.map (fst) qs)
           let vs = v $ [(n, lookup_coord n kvs) | n <- [0..numbers-1]]
           r <- V.unsafeWith vs ptr2repa
-          runIL $ writeImage "kaprekar.png" r
+          runIL $ writeImage "kaprekar3.bmp" r
