@@ -22,21 +22,14 @@ mk_max_min n = (unDigits base $ List.reverse m, unDigits base m)
           l = List.sort $ digitsRev base n
 
 
---gen_pairs = [(1000*a + 100*b + 10*c + 1*d, 1000*d + 100*c + 10*b + a)
---             | a <- [0..base-1]
---             , b <- [0..a]
---             , c <- [0..b]
---             , d <- [0..c]
---             , not $ all (a==) [a, b, c, d]]
-
-
--- I feel like their must be a superior (faster) way of doing this.
--- Perhaps there is a way to write the list comprehension in the original
--- version as a function of base and width?
-gen_pairs = List.sort
-          $ List.filter (uncurry (/=))
-          $ List.nub
-          $ List.map mk_max_min [0..numbers-1]
+gen_pairs = List.map (mk_max_min . unDigits base) $ f width (base-1) where
+    f 0 _ = [[]]
+    f k m = do
+            a <- [0..m]
+            ax <- f (k-1) a
+            if k==width && all (a==) ax
+               then []
+               else return $ (a):ax
 
 
 sub_pairs = List.map (uncurry (-))
