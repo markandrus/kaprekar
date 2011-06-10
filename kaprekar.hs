@@ -29,7 +29,7 @@ genPairs = List.map (mkMaxMin . unDigits base) $ f width (base-1) where
             ax <- f (k-1) a
             if k==width && all (a==) ax
                then []
-               else return $ a:ax
+               else return $! a:ax
 
 
 subPairs = List.map (uncurry (-))
@@ -39,7 +39,6 @@ regenPairs ps = filter (uncurry (/=)) --is this line necessary?
                $ List.map mkMaxMin ps
 
 
---iterations xs | (length $ List.nub qs) > 1 = iterations ys
 iterations xs | not . all (uncurry (==)) $ zip is js = iterations ys
               | otherwise = ys
      where ys = zip js qs
@@ -49,8 +48,8 @@ iterations xs | not . all (uncurry (==)) $ zip is js = iterations ys
  
 
 lookupCoord :: Int -> [((Int, Int), Int)] -> Int
-lookupCoord n kvs | isNothing v  = -1
-                   | otherwise    = fromJust v where v = lookup (mkMaxMin n) kvs
+lookupCoord n kvs | isNothing v = -1
+                  | otherwise  = fromJust v where v = lookup (mkMaxMin n) kvs
 
 
 {- Image Functions -}
@@ -62,7 +61,7 @@ i, j, k :: Int
 
 -- TODO: rewrite this so we can accomodate numbers iteration steps larger than 6.
 v :: [(Int, Int)] -> V.Vector Word8
-v ps = V.fromList . take (i * j * k) . concat $ List.map (c . snd) ps
+v ps = V.fromList . concat $ List.map (c . snd) ps
      where c (-1) = [255, 255,   0, 255] -- Yellow
            c   0  = [128, 255,   0, 255] -- Yellow-Green
            c   1  = [  0, 255,  64, 255] -- Green
@@ -79,9 +78,9 @@ ptr2repa = copyFromPtrWord8 (Z :. i :. j :. k)
 
 {- Main -}
 
-main = do let ps = genPairs
-          let qs = iterations . zip (replicate (length ps) 0) $ subPairs ps
+main = do let !ps = genPairs
+          let !qs = iterations . zip (replicate (length ps) 0) $ subPairs ps
           let kvs = zip ps (List.map fst qs)
           let vs = v [(n, lookupCoord n kvs) | n <- [0..numbers-1]]
           r <- V.unsafeWith vs ptr2repa
-          runIL $ writeImage "kaprekar_2_32.bmp" r
+          runIL $ writeImage "kaprekar.bmp" r
