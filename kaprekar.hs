@@ -16,27 +16,27 @@ numbers = base^width
 
 {- Kaprekar Functions -}
 
-mk_max_min :: Int -> (Int, Int)
-mk_max_min n = (unDigits base $ List.reverse m, unDigits base m)
+mkMaxMin :: Int -> (Int, Int)
+mkMaxMin n = (unDigits base $ List.reverse m, unDigits base m)
     where m = replicate (width - length l) 0 ++ l
           l = List.sort $ digitsRev base n
 
 
-gen_pairs = List.map (mk_max_min . unDigits base) $ f width (base-1) where
+genPairs = List.map (mkMaxMin . unDigits base) $ f width (base-1) where
     f 0 _ = [[]]
     f k m = do
             a <- [0..m]
             ax <- f (k-1) a
             if k==width && all (a==) ax
                then []
-               else return $ (a):ax
+               else return $ a:ax
 
 
-sub_pairs = List.map (uncurry (-))
+subPairs = List.map (uncurry (-))
 
 
-regen_pairs ps = filter (uncurry (/=)) --is this line necessary?
-               $ List.map mk_max_min ps
+regenPairs ps = filter (uncurry (/=)) --is this line necessary?
+               $ List.map mkMaxMin ps
 
 
 --iterations xs | (length $ List.nub qs) > 1 = iterations ys
@@ -44,13 +44,13 @@ iterations xs | not . all (uncurry (==)) $ zip is js = iterations ys
               | otherwise = ys
      where ys = zip js qs
            js = List.map (\(i, p, q) -> if p==q then i else i+1) $ zip3 is ps qs
-           qs = sub_pairs $ regen_pairs ps
+           qs = subPairs $ regenPairs ps
            (is, ps) = unzip xs
  
 
-lookup_coord :: Int -> [((Int, Int), Int)] -> Int
-lookup_coord n kvs | isNothing v  = -1
-                   | otherwise    = fromJust v where v = lookup (mk_max_min n) kvs
+lookupCoord :: Int -> [((Int, Int), Int)] -> Int
+lookupCoord n kvs | isNothing v  = -1
+                   | otherwise    = fromJust v where v = lookup (mkMaxMin n) kvs
 
 
 {- Image Functions -}
@@ -79,9 +79,9 @@ ptr2repa = copyFromPtrWord8 (Z :. i :. j :. k)
 
 {- Main -}
 
-main = do let ps = gen_pairs
-          let qs = iterations . zip (replicate (length ps) 0) $ sub_pairs ps
+main = do let ps = genPairs
+          let qs = iterations . zip (replicate (length ps) 0) $ subPairs ps
           let kvs = zip ps (List.map fst qs)
-          let vs = v [(n, lookup_coord n kvs) | n <- [0..numbers-1]]
+          let vs = v [(n, lookupCoord n kvs) | n <- [0..numbers-1]]
           r <- V.unsafeWith vs ptr2repa
           runIL $ writeImage "kaprekar_2_32.bmp" r
