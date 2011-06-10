@@ -3,7 +3,7 @@
 -- Inspiration: http://mathworld.wolfram.com/KaprekarRoutine.html
 import Data.Maybe
 import Data.Word
-import qualified List
+import qualified Data.List as List
 import Data.Digits
 import qualified Data.Vector.Storable as V
 import Data.Array.Repa hiding ((++))
@@ -17,8 +17,8 @@ numbers = base^width
 {- Kaprekar Functions -}
 
 mk_max_min :: Int -> (Int, Int)
-mk_max_min n = (unDigits base $ List.reverse m, unDigits base $ m)
-    where m = (replicate (width - length l) 0) ++ l
+mk_max_min n = (unDigits base $ List.reverse m, unDigits base m)
+    where m = replicate (width - length l) 0 ++ l
           l = List.sort $ digitsRev base n
 
 
@@ -34,28 +34,29 @@ mk_max_min n = (unDigits base $ List.reverse m, unDigits base $ m)
 -- Perhaps there is a way to write the list comprehension in the original
 -- version as a function of base and width?
 gen_pairs = List.sort
-          $ List.filter (\(x, y) -> x /= y)
+          $ List.filter (uncurry (/=))
           $ List.nub
-          $ List.map (mk_max_min) [0..numbers-1]
+          $ List.map mk_max_min [0..numbers-1]
 
 
-sub_pairs ps = List.map (\(max, min) -> max - min) ps
+sub_pairs = List.map (uncurry (-))
 
 
-regen_pairs ps = filter (\(x, y) -> x /= y) --is this line necessary?
-               $ List.map (mk_max_min) ps
+regen_pairs ps = filter (uncurry (/=)) --is this line necessary?
+               $ List.map mk_max_min ps
 
 
-iterations xs | (length $ List.nub qs) > 1 = iterations ys
+--iterations xs | (length $ List.nub qs) > 1 = iterations ys
+iterations xs | not . all (uncurry (==)) $ zip is js = iterations ys
               | otherwise = ys
      where ys = zip js qs
-           js = List.map (\(i, p, q) -> if (p==q) then i else i+1) $ zip3 is ps qs
+           js = List.map (\(i, p, q) -> if p==q then i else i+1) $ zip3 is ps qs
            qs = sub_pairs $ regen_pairs ps
            (is, ps) = unzip xs
  
 
 lookup_coord :: Int -> [((Int, Int), Int)] -> Int
-lookup_coord n kvs | isNothing v  = (-1)
+lookup_coord n kvs | isNothing v  = -1
                    | otherwise    = fromJust v where v = lookup (mk_max_min n) kvs
 
 
@@ -80,14 +81,14 @@ v ps = V.fromList . take (i * j * k) . concat $ List.map (c . snd) ps
            c   _  = [  0,   0,   0, 255] -- Black
 
 
-ptr2repa p = copyFromPtrWord8 (Z :. i :. j :. k) p
+ptr2repa = copyFromPtrWord8 (Z :. i :. j :. k)
 
 
 {- Main -}
 
 main = do let ps = gen_pairs
           let qs = iterations . zip (replicate (length ps) 0) $ sub_pairs ps
-          let kvs = zip ps (List.map (fst) qs)
-          let vs = v $ [(n, lookup_coord n kvs) | n <- [0..numbers-1]]
+          let kvs = zip ps (List.map fst qs)
+          let vs = v [(n, lookup_coord n kvs) | n <- [0..numbers-1]]
           r <- V.unsafeWith vs ptr2repa
-          runIL $ writeImage "kaprekar3.bmp" r
+          runIL $ writeImage "kaprekar_2_32.bmp" r
