@@ -38,6 +38,13 @@ iterations base width xs | all (uncurry (==)) $ zip is js = ys
 lookupCoord base width n kvs | isNothing v = -1
                              | otherwise  = fromJust v where v = lookup (mkMaxMin base width n) kvs
 
+{- Kaprekar Functions' -}
+
+iterator base width np | n==p = (i, n)
+                       | otherwise = iterator base width (i+1, next n, n)
+    where (i, n, p) = np
+          next k = uncurry (-) $! mkMaxMin base width k
+
 {- Image Functions -}
 
 isqrt = floor . sqrt . fromIntegral
@@ -64,7 +71,8 @@ main = do let (base, width) = (10, 4)
           let !dim = base^width
           let (i, j, k) = (isqrt dim, isqrt dim, 4 {-RGBA-})
           let ps = genPairs base width
-          let !qs = iterations base width . zip (replicate (length ps) 0) $ subPairs ps
+          --let !qs = iterations base width . zip (replicate (length ps) 0) $ subPairs ps
+          let !qs = List.map (iterator base width) $ zip3 (replicate (length ps) 0) (subPairs ps) (replicate (length ps) 0)
           let kvs = zip ps (List.map fst qs)
           let vs = v [(n, lookupCoord base width n kvs) | n <- [0..dim-1]]
           r <- V.unsafeWith vs $! ptr2repa i j k
