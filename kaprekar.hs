@@ -1,6 +1,7 @@
 -- Kaprekar Routine Visualization
 -- By: andrus@uchicago.edu
 -- Inspiration: http://mathworld.wolfram.com/KaprekarRoutine.html
+import GHC.Ptr
 import Data.Maybe
 import Data.Word
 import qualified Data.List as List
@@ -10,18 +11,13 @@ import Data.Array.Repa hiding ((++))
 import Data.Array.Repa.IO.DevIL
 import Data.Array.Repa.ByteString
 
-base = 10
-width = 4
-numbers = base^width
-
 {- Kaprekar Functions -}
 
-mkMaxMin :: Int -> (Int, Int)
-mkMaxMin n = (unDigits base $ List.reverse m, unDigits base m)
+mkMaxMin base width n = (unDigits base $ List.reverse m, unDigits base m)
     where m = replicate (width - length l) 0 ++ l
           l = List.sort $ digitsRev base n
 
-genPairs = List.map (mkMaxMin . unDigits base) $ f width (base-1) where
+genPairs base width = List.map (mkMaxMin base width . unDigits base) $ f width (base-1) where
     f 0 _ = [[]]
     f k m = do a <- [0..m]
                ax <- f (k-1) a
@@ -30,23 +26,21 @@ genPairs = List.map (mkMaxMin . unDigits base) $ f width (base-1) where
 
 subPairs = List.map (uncurry (-))
 
-regenPairs = List.map mkMaxMin
+regenPairs base width = List.map (mkMaxMin base width)
 
-iterations xs | all (uncurry (==)) $ zip is js = ys
-              | otherwise = iterations ys
+iterations base width xs | all (uncurry (==)) $ zip is js = ys
+                         | otherwise = iterations base width ys
      where ys = zip js qs
            js = List.map (\(i, p, q) -> if p==q then i else i+1) $ zip3 is ps qs
-           qs = subPairs $ regenPairs ps
+           qs = subPairs $ regenPairs base width ps
            (is, ps) = unzip xs
  
-lookupCoord n kvs | isNothing v = -1
-                  | otherwise  = fromJust v where v = lookup (mkMaxMin n) kvs
+lookupCoord base width n kvs | isNothing v = -1
+                             | otherwise  = fromJust v where v = lookup (mkMaxMin base width n) kvs
 
 {- Image Functions -}
 
 isqrt = floor . sqrt . fromIntegral
-
-(i, j, k) = (isqrt numbers, isqrt numbers, 4 {-RGBA-})
 
 -- TODO: rewrite this so we can accomodate numbers iteration steps larger than 6.
 v :: [(Int, Int)] -> V.Vector Word8
@@ -61,13 +55,17 @@ v ps = V.fromList . concat $ List.map (c . snd) ps
            c   6  = [255,   0,   0, 255] -- Red
            c   _  = [  0,   0,   0, 255] -- Black
 
-ptr2repa = copyFromPtrWord8 (Z :. i :. j :. k)
+ptr2repa i j k = copyFromPtrWord8 (Z :. i :. j :. k)
 
 {- Main -}
 
-main = do let !ps = genPairs
-          let !qs = iterations . zip (replicate (length ps) 0) $ subPairs ps
+main :: IO ()
+main = do let (base, width) = (10, 4)
+          let !dim = base^width
+          let (i, j, k) = (isqrt dim, isqrt dim, 4 {-RGBA-})
+          let ps = genPairs base width
+          let !qs = iterations base width . zip (replicate (length ps) 0) $ subPairs ps
           let kvs = zip ps (List.map fst qs)
-          let vs = v [(n, lookupCoord n kvs) | n <- [0..numbers-1]]
-          r <- V.unsafeWith vs ptr2repa
+          let vs = v [(n, lookupCoord base width n kvs) | n <- [0..dim-1]]
+          r <- V.unsafeWith vs $! ptr2repa i j k
           runIL $ writeImage "kaprekar.bmp" r
